@@ -33,7 +33,7 @@ pub enum Command<'a> {
         expiry_secs: u32,
         custom_headers: Option<HeaderMap>,
     },
-    InitiateMultipartUpload,
+    CreateMultipartUpload { content_type: &'a str },
     UploadPart {
         part_number: u32,
         content: &'a [u8],
@@ -69,7 +69,7 @@ impl<'a> Command<'a> {
             | Command::DeleteObjectTagging
             | Command::AbortMultipartUpload { .. }
             | Command::DeleteBucket => Method::DELETE,
-            Command::InitiateMultipartUpload | Command::CompleteMultipartUpload { .. } => {
+            Command::CreateMultipartUpload { .. } | Command::CompleteMultipartUpload { .. } => {
                 Method::POST
             }
             Command::HeadObject => Method::HEAD,

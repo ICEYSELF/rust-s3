@@ -408,15 +408,26 @@ impl Bucket {
         s3_path: impl AsRef<str>,
     ) -> Result<u16> {
         let mut file = File::open(path).await?;
-        self._put_object_stream(&mut file, s3_path.as_ref()).await
+        self._put_object_stream(&mut file, s3_path.as_ref(), "application/octet-stream").await
+    }
+
+    pub async fn put_object_stream_with_content_type(
+        &self,
+        path: impl AsRef<Path>,
+        s3_path: impl AsRef<str>,
+        content_type: &str
+    ) -> Result<u16> {
+        let mut file = File::open(path).await?;
+        self._put_object_stream(&mut file, s3_path.as_ref(), content_type).await
     }
 
     async fn _put_object_stream<R: AsyncRead + Unpin>(
         &self,
         reader: &mut R,
         s3_path: &str,
+        content_type: &str
     ) -> Result<u16> {
-        let command = Command::InitiateMultipartUpload;
+        let command = Command::CreateMultipartUpload { content_type };
         let path = format!("{}?uploads", s3_path);
         let request = Request::new(self, &path, command);
         let (data, code) = request.response_data_future(false).await?;
@@ -437,14 +448,14 @@ impl Bucket {
                     let abort_path = format!("{}?uploadId={}", msg.key, &msg.upload_id);
                     let abort_request = Request::new(self, &abort_path, abort);
                     let (_, _code) = abort_request.response_data_future(false).await?;
-                    self.put_object(s3_path, chunk.as_slice()).await?;
+                    self.put_object_with_content_type(s3_path, chunk.as_slice(), content_type).await?;
                     break;
                 } else {
                     part_number += 1;
                     let command = Command::PutObject {
                         // part_number,
                         content: &chunk,
-                        content_type: "application/octet-stream", // upload_id: &msg.upload_id,
+                        content_type, // upload_id: &msg.upload_id,
                     };
                     let path = format!(
                         "{}?partNumber={}&uploadId={}",
@@ -479,7 +490,8 @@ impl Bucket {
                 let command = Command::PutObject {
                     // part_number,
                     content: &chunk,
-                    content_type: "application/octet-stream", // upload_id: &msg.upload_id,
+                    content_type,
+                    // upload_id: &msg.upload_id,
                 };
                 let path = format!(
                     "{}?partNumber={}&uploadId={}",

@@ -176,6 +176,7 @@ impl<'a> Request<'a> {
 
     fn content_type(&self) -> String {
         match self.command {
+            Command::CreateMultipartUpload { content_type } => content_type.into(),
             Command::PutObject { content_type, .. } => content_type.into(),
             Command::CompleteMultipartUpload { .. } => "application/xml".into(),
             _ => "text/plain".into(),
