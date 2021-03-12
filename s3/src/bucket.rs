@@ -16,8 +16,6 @@ use crate::serde_types::{
 use crate::{Result, S3Error};
 
 use futures::io::AsyncRead;
-use tokio::io::AsyncRead as TokioAsyncRead;
-use tokio::io::AsyncReadExt as TokioAsyncReadExt;
 use tokio::io::AsyncWrite as TokioAsyncWrite;
 
 use reqwest::header::HeaderMap;
@@ -270,7 +268,7 @@ impl Bucket {
     /// println!("Code: {}\nData: {:?}", code, data);
     /// ```
     pub fn get_object_blocking<S: AsRef<str>>(&self, path: S) -> Result<(Vec<u8>, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.get_object(path))?)
     }
 
@@ -326,7 +324,7 @@ impl Bucket {
         path: &str,
         writer: &mut T,
     ) -> Result<u16> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.get_object_stream(path, writer))?)
     }
 
@@ -506,47 +504,6 @@ impl Bucket {
         Ok(code)
     }
 
-    /// Stream file from local path to s3 using tokio::io, async.
-    ///
-    /// # Example:
-    ///
-    /// ```rust,no_run
-    ///
-    /// use s3::bucket::Bucket;
-    /// use s3::creds::Credentials;
-    /// use s3::S3Error;
-    /// use tokio::prelude::*;
-    /// use tokio::fs::File;
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), S3Error> {
-    ///
-    ///     let bucket_name = "rust-s3-test";
-    ///     let region = "us-east-1".parse()?;
-    ///     let credentials = Credentials::default()?;
-    ///     let bucket = Bucket::new(bucket_name, region, credentials)?;
-    ///     let mut file = File::open("foo.txt").await?;
-    ///
-    ///     let status_code = bucket.tokio_put_object_stream(&mut file, "/test_file").await?;
-    ///     println!("Code: {}", status_code);
-    ///     Ok(())
-    /// }
-    /// ```
-    pub async fn tokio_put_object_stream<R: TokioAsyncRead + Unpin, S: AsRef<str>>(
-        &self,
-        reader: &mut R,
-        s3_path: S,
-    ) -> Result<u16> {
-        let mut bytes = Vec::new();
-        reader.read(&mut bytes).await?;
-        let command = Command::PutObject {
-            content: &bytes[..],
-            content_type: "application/octet-stream",
-        };
-        let request = Request::new(self, s3_path.as_ref(), command);
-        Ok(request.response_data_future(false).await?.1)
-    }
-
     /// Stream file from local path to s3, blockIng.
     ///
     /// # Example:
@@ -575,7 +532,7 @@ impl Bucket {
         path: impl AsRef<Path>,
         s3_path: impl AsRef<str>,
     ) -> Result<u16> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.put_object_stream(path, s3_path))?)
     }
 
@@ -644,7 +601,7 @@ impl Bucket {
     /// println!("{}", bucket.location_blocking().unwrap().0)
     /// ```
     pub fn location_blocking(&self) -> Result<(Region, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.location())?)
     }
 
@@ -694,7 +651,7 @@ impl Bucket {
     /// assert_eq!(204, code);
     /// ```
     pub fn delete_object_blocking<S: AsRef<str>>(&self, path: S) -> Result<(Vec<u8>, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.delete_object(path))?)
     }
 
@@ -739,7 +696,7 @@ impl Bucket {
     /// assert_eq!(head_object_result.content_type.unwrap() , "image/png".to_owned());
     /// ```
     pub fn head_object_blocking<S: AsRef<str>>(&self, path: S) -> Result<(HeadObjectResult, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.head_object(path))?)
     }
 
@@ -846,7 +803,7 @@ impl Bucket {
         path: S,
         content: &[u8],
     ) -> Result<(Vec<u8>, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.put_object(path, content))?)
     }
 
@@ -877,7 +834,7 @@ impl Bucket {
         content: &[u8],
         content_type: &str,
     ) -> Result<(Vec<u8>, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.put_object_with_content_type(path, content, content_type))?)
     }
 
@@ -964,7 +921,7 @@ impl Bucket {
         path: &str,
         tags: &[(S, S)],
     ) -> Result<(Vec<u8>, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.put_object_tagging(path, tags))?)
     }
 
@@ -1021,7 +978,7 @@ impl Bucket {
     /// assert_eq!(201, code);
     /// ```
     pub fn delete_object_tagging_blocking<S: AsRef<str>>(&self, path: S) -> Result<(Vec<u8>, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.delete_object_tagging(path))?)
     }
 
@@ -1102,7 +1059,7 @@ impl Bucket {
         &self,
         path: S,
     ) -> Result<(Option<Tagging>, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.get_object_tagging(path))?)
     }
 
@@ -1114,7 +1071,7 @@ impl Bucket {
         start_after: Option<String>,
         max_keys: Option<usize>,
     ) -> Result<(ListBucketResult, u16)> {
-        let mut rt = Runtime::new()?;
+        let rt = Runtime::new()?;
         Ok(rt.block_on(self.list_page(
             prefix,
             delimiter,
